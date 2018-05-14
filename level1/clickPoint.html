@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WebGL</title>
+</head>
+<body>
+<canvas id="canvas" width="800" height="400">no support</canvas>
+<script src="../lib/webgl-utils.js"></script>
+<script src="../lib/webgl-debug.js"></script>
+<script src="../lib/cuon-utils.js"></script>
+<script>
+    // 顶点着色器
+    const VSHADER_SOURCE =
+        'attribute vec4 a_Position;\n' +
+        'attribute float a_PointSize;\n' +
+        'void main() {\n' +
+        '  gl_Position = a_Position;\n' +
+        '  gl_PointSize = a_PointSize;\n' +
+        '}\n';
+
+    // 片元着色器
+    const FSHADER_SOURCE =
+        'precision mediump float;\n'+ // 精度限定词指定变量的范围 中等精度
+        'uniform vec4 u_FragColor;\n'+
+        'void main() {\n' +
+        '  gl_FragColor = u_FragColor;\n' +
+        '}\n';
+
+    function main() {
+        const canvas = document.getElementById('canvas');
+        const gl = getWebGLContext(canvas);
+        if(!gl){
+            console.log('获取WebGL上下文失败！');
+            return;
+        }
+
+        // 初始化着色器
+        if(!initShaders(gl,VSHADER_SOURCE,FSHADER_SOURCE)){
+            console.log('初始化着色器失败')
+        }
+        // 获取attribute变量的存储位置
+        const a_position = gl.getAttribLocation(gl.program,'a_Position');
+        const a_pointSize = gl.getAttribLocation(gl.program,'a_PointSize');
+        const u_FragColor = gl.getUniformLocation(gl.program,'u_FragColor');
+        if(a_position < 0 || a_pointSize < 0 ) {
+            console.log('获取位置失败');
+            return;
+        }
+
+        const g_points = []; // 点数组
+        //注册鼠标事件
+        canvas.onclick = function(ev) {
+            let x = ev.clientX;
+            let y = ev.clientY;
+            let color;
+            const rect = ev.target.getBoundingClientRect();
+            x = ((x - rect.left)-canvas.width/2)/(canvas.width/2);
+            y = (canvas.height/2 - (y - rect.top))/(canvas.height/2);
+
+            if(x>=0.0 && y>=0.0) { // 第一象限
+                color = [1.0,0.0,0.0,1.0]; // 红色
+            } else if(x < 0.0 && y < 0.0) { // 第三象限
+                color = [0.0,1.0,0.0,1.0]; // 绿色
+            } else { // 其他
+                color = [1.0,1.0,1.0,1.0]; // 白色
+            }
+            g_points.push({x,y,color});
+            render(gl,a_position,u_FragColor,g_points);
+        };
+        function render(gl,a_position,u_FragColor,g_points){
+            // 清空
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            for(let i = 0, p; p = g_points[i++];) {
+                // 将顶点信息传输给attribute变量
+                gl.vertexAttrib3f(a_position, p.x, p.y, 0.0);
+                gl.uniform4f(u_FragColor, p.color[0], p.color[1], p.color[2], p.color[3]);
+
+                // 绘制一个点
+                gl.drawArrays(gl.POINTS,0,1);
+            }
+        }
+        // 设置背景色
+        gl.clearColor(0.0, 0.0, 0.0, 1.0);
+
+        // 清空
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.vertexAttrib1f(a_pointSize, 20.0);
+
+    }
+    main();
+</script>
+</body>
+</html>

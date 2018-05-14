@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WebGL</title>
+</head>
+<body>
+<canvas id="canvas" width="400" height="400">no support</canvas>
+<script src="../lib/webgl-utils.js"></script>
+<script src="../lib/webgl-debug.js"></script>
+<script src="../lib/cuon-utils.js"></script>
+<script>
+    // 顶点着色器
+    const VSHADER_SOURCE =
+        'void main() {\n' +
+        '  gl_Position = vec4(0.5, 0.5, 0.0, 1.0);\n' + // 设置点位置
+        '  gl_PointSize = 10.0;\n' +                    // 设置点大小
+        '}\n';
+
+    // 片元着色器
+    const FSHADER_SOURCE =
+        'void main() {\n' +
+        '  gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);\n' + // 设置点颜色
+        '}\n';
+
+    function main() {
+        const canvas = document.getElementById('canvas');
+        const gl = getWebGLContext(canvas);
+        if(!gl){
+            console.log('获取WebGL上下文失败！');
+            return;
+        }
+
+        // 初始化着色器
+        if(!initShaders(gl,VSHADER_SOURCE,FSHADER_SOURCE)){
+            console.log('初始化着色器失败')
+        }
+        // 设置背景色
+        gl.clearColor(0.0, 0.0, 0.0, 1.0);
+
+        // 清空
+        gl.clear(gl.COLOR_BUFFER_BIT);
+
+        // 绘制一个点
+        gl.drawArrays(gl.POINTS,0,1);
+    }
+    main();
+</script>
+</body>
+</html>

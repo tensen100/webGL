@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WebGL</title>
+</head>
+<body>
+<canvas id="canvas" width="600" height="600">no support</canvas>
+<script src="../lib/webgl-utils.js"></script>
+<script src="../lib/webgl-debug.js"></script>
+<script src="../lib/cuon-utils.js"></script>
+<script src="../lib/cuon-matrix.js"></script>
+<script>
+    // 顶点着色器
+    const VSHADER_SOURCE =
+        'attribute vec4 a_Position;\n' +
+        'uniform mat4 u_ModelMatrix;\n' +
+        'void main() {\n' +
+        '  gl_Position = u_ModelMatrix * a_Position;\n' +
+        '}\n';
+
+    // 片元着色器
+    const FSHADER_SOURCE =
+        'void main() {\n' +
+        '  gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);\n' +
+        '}\n';
+
+    /**
+     * 创建顶点缓冲区对象，并将多个顶点的数据保存在缓冲区，然后将缓冲区传给顶点着色器
+     * @param gl
+     * @returns {number} 点的个数
+     */
+    function initVertexBuffers(gl) {
+        const vertices = new Float32Array([0.0,0.5,-0.5,-0.5,0.5,-0.5]);
+        const n = 3; // 点的个数
+
+        // step 1:创建缓冲区对象
+        const vertexBuffer = gl.createBuffer();
+        if(!vertexBuffer){
+            console.log('创建缓冲区对象失败')
+            return -1;
+        }
+
+        // step 2:将缓冲区对象绑定到目标
+        gl.bindBuffer(gl.ARRAY_BUFFER,vertexBuffer);
+
+        // step 3:向缓冲区对象中写入数据
+        gl.bufferData(gl.ARRAY_BUFFER,vertices,gl.STATIC_DRAW);
+
+        // step 4:将缓冲区对象分配给a_position
+        const a_position = gl.getAttribLocation(gl.program,'a_Position');
+        if(a_position < 0) {
+            console.log('获取位置失败');
+            return;
+        }
+        gl.vertexAttribPointer(a_position,2,gl.FLOAT,false,0,0);
+
+        // step 5:链接a_position变量与分配给它的缓冲区对象
+        gl.enableVertexAttribArray(a_position);
+
+        return n;
+
+
+    }
+
+    // 旋转速度
+    const ANGLE_STEP = 40.0;
+
+    function main() {
+        const canvas = document.getElementById('canvas');
+        // 获取WebGL上下文
+        const gl = getWebGLContext(canvas);
+        if(!gl){
+            console.log('获取WebGL上下文失败！');
+            return;
+        }
+
+        // 初始化着色器
+        if(!initShaders(gl,VSHADER_SOURCE,FSHADER_SOURCE)){
+            console.log('初始化着色器失败')
+        }
+
+        // 设置顶点位置
+        const n = initVertexBuffers(gl);
+        if(n<0) {
+            console.log('设置顶点位置失败');
+            return;
+        }
+
+        // 设置背景色
+        gl.clearColor(0.0, 0.0, 0.0, 1.0);
+
+        // 获取u_ModelMatrix变量储存位置
+        const u_ModelMatrix = gl.getUniformLocation(gl.program, 'u_ModelMatrix');
+        if (!u_ModelMatrix) {
+            console.log('获取储存位置失败');
+            return;
+        }
+
+        // 当前旋转角度
+        let currentAngle = 0.0;
+
+        // 模型矩阵
+        const modelMatrix = new Matrix4();
+
+        //开始绘制
+        const tick = function() {
+            currentAngle = animate(currentAngle); // 更新旋转角
+            draw(gl,n,currentAngle,modelMatrix,u_ModelMatrix);
+            requestAnimationFrame(tick,canvas); // 请求浏览器用tick;
+        };
+        tick();
+    }
+    function draw(gl,n,currentAngle,modelMatrix,u_ModelMatrix) {
+        // 设置旋转矩阵
+        modelMatrix.setRotate(currentAngle,0,0,1);
+        // 平移
+        modelMatrix.translate(0.35,0,0);
+        //将旋转矩阵传入顶点着色器
+        gl.uniformMatrix4fv(u_ModelMatrix,false,modelMatrix.elements);
+        //清楚canvas
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        //绘制三角形
+        gl.drawArrays(gl.TRIANGLES,0,n)
+    }
+    let g_last = Date.now();
+    function animate(angle) {
+        // 计算距离上次调用经过多长的时间。
+        const now = Date.now();
+        const elapsed = now - g_last; // 毫秒
+        g_last = now;
+        // 更具距离上次调用的时间，跟新当前旋转角度
+        let newAngle = angle + (ANGLE_STEP * elapsed) /1000.0;
+        return newAngle %= 360;
+    }
+    main();
+</script>
+</body>
+</html>

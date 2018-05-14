@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WebGL</title>
+</head>
+<body>
+<canvas id="canvas" width="600" height="600">no support</canvas>
+<script src="../lib/webgl-utils.js"></script>
+<script src="../lib/webgl-debug.js"></script>
+<script src="../lib/cuon-utils.js"></script>
+<script src="../lib/cuon-matrix.js"></script>
+<script>
+    // 顶点着色器
+    const VSHADER_SOURCE2 =
+      'attribute vec4 a_Position;\n' +
+      'attribute float a_PointSize;\n' +
+      'void main() {\n' +
+      '  gl_Position = a_Position;\n' +
+      '  gl_PointSize = a_PointSize;\n' +
+      '}\n';
+    const VSHADER_SOURCE3 =
+        'attribute vec4 a_Position;\n' +
+        'attribute vec4 a_Color;\n' +
+        'varying vec4 v_Color;\n' +
+        'void main() {\n' +
+        '  gl_Position = a_Position;\n' +
+        '  v_Color = a_Color;\n' +
+        '}\n';
+
+    // 片元着色器
+    const FSHADER_SOURCE2 =
+        'void main() {\n' +
+        '  gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);\n' +
+        '}\n';
+    const FSHADER_SOURCE3 =
+        'varying lowp vec4 v_Color;\n' +
+        'void main() {\n' +
+        '  gl_FragColor = v_Color;\n' +
+        '}\n';
+
+    /**
+     * 创建顶点缓冲区对象，并将多个顶点的数据保存在缓冲区，然后将缓冲区传给顶点着色器
+     * @param gl
+     * @returns {number} 点的个数
+     */
+    function initVertexBuffers(gl) {
+        const vertices = new Float32Array([0.0,0.5,-0.5,-0.5,0.5,-0.5]);
+        const n = 3; // 点的个数
+        const sizes = new Float32Array([
+            10.0, 20.0, 30.0  // Point sizes
+        ]);
+        //创建缓冲区对象
+        const vertexBuffer = gl.createBuffer();
+        const sizeBuffer = gl.createBuffer();
+        if(!vertexBuffer || !sizeBuffer){
+            console.log('创建缓冲区对象失败');
+            return -1;
+        }
+
+
+        gl.bindBuffer(gl.ARRAY_BUFFER,vertexBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER,vertices,gl.STATIC_DRAW);
+        const a_position = gl.getAttribLocation(gl.program,'a_Position');
+        if(a_position < 0) {
+            console.log('获取位置失败');
+            return -1;
+        }
+        gl.vertexAttribPointer(a_position,2,gl.FLOAT,false,0,0);
+        gl.enableVertexAttribArray(a_position);
+
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, sizeBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, sizes, gl.STATIC_DRAW);
+        const a_PointSize = gl.getAttribLocation(gl.program, 'a_PointSize');
+        if(a_position < 0 || a_PointSize < 0) {
+            console.log('获取位置失败');
+            return -1;
+        }
+        gl.vertexAttribPointer(a_PointSize, 1, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(a_PointSize);
+
+        // 情况缓冲区
+        gl.bindBuffer(gl.ARRAY_BUFFER, null);
+        return n;
+
+
+    }
+    function initVertexBuffers2(gl) {
+        const verticesSizes = new Float32Array([
+            0.0,  0.5,  10.0,
+            -0.5, -0.5,  20.0,
+            0.5, -0.5,  30.0
+        ]);
+        const n = 3; // 点的个数
+        //创建缓冲区对象
+        const vertexSizeBuffer = gl.createBuffer();
+        if(!vertexSizeBuffer){
+            console.log('创建缓冲区对象失败');
+            return -1;
+        }
+
+
+        gl.bindBuffer(gl.ARRAY_BUFFER,vertexSizeBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER,verticesSizes,gl.STATIC_DRAW);
+
+        const FSIZE = verticesSizes.BYTES_PER_ELEMENT;
+        const a_position = gl.getAttribLocation(gl.program,'a_Position');
+        if(a_position < 0) {
+            console.log('获取位置失败');
+            return -1;
+        }
+        gl.vertexAttribPointer(a_position, 2, gl.FLOAT, false, FSIZE * 3, 0);
+        gl.enableVertexAttribArray(a_position);
+
+        const a_pointSize = gl.getAttribLocation(gl.program, 'a_PointSize');
+        if(a_pointSize < 0) {
+            console.log('Failed to get the storage location of a_PointSize');
+            return -1;
+        }
+        gl.vertexAttribPointer(a_pointSize, 1, gl.FLOAT, false, FSIZE * 3, FSIZE * 2);
+        gl.enableVertexAttribArray(a_pointSize);
+
+        // 清空缓冲区
+        gl.bindBuffer(gl.ARRAY_BUFFER, null);
+        return n;
+
+
+    }
+    function initVertexBuffers3(gl) {
+      const verticesSizes = new Float32Array([
+        0.0,  0.5, 1.0, 0.0, 0.0,
+        -0.5, -0.5, 0.0, 1.0, 0.0,
+        0.5, -0.5, 0.0, 0.0, 1.0
+      ]);
+      const n = 3; // 点的个数
+      //创建缓冲区对象
+      const vertexSizeBuffer = gl.createBuffer();
+      if(!vertexSizeBuffer){
+        console.log('创建缓冲区对象失败');
+        return -1;
+      }
+
+
+      gl.bindBuffer(gl.ARRAY_BUFFER,vertexSizeBuffer);
+      gl.bufferData(gl.ARRAY_BUFFER,verticesSizes,gl.STATIC_DRAW);
+
+      const FSIZE = verticesSizes.BYTES_PER_ELEMENT;
+
+      // 位置
+      const a_position = gl.getAttribLocation(gl.program,'a_Position');
+      if(a_position < 0) {
+        console.log('获取位置失败');
+        return -1;
+      }
+      gl.vertexAttribPointer(a_position, 2, gl.FLOAT, false, FSIZE * 5, 0);
+      gl.enableVertexAttribArray(a_position);
+
+
+      // 颜色
+      const a_Color = gl.getAttribLocation(gl.program, 'a_Color');
+      if(a_Color < 0) {
+        console.log('获取位置失败');
+        return -1;
+      }
+      gl.vertexAttribPointer(a_Color, 3, gl.FLOAT, false, FSIZE * 5, FSIZE * 2);
+      gl.enableVertexAttribArray(a_Color);
+
+      return n;
+    }
+
+    function main() {
+        const canvas = document.getElementById('canvas');
+        // 获取WebGL上下文
+        const gl = getWebGLContext(canvas);
+        if(!gl){
+            console.log('获取WebGL上下文失败！');
+            return;
+        }
+
+        // 初始化着色器
+        if(!initShaders(gl,VSHADER_SOURCE3,FSHADER_SOURCE3)){
+            console.log('初始化着色器失败')
+            return;
+        }
+
+        // 设置顶点位置
+        // const n = initVertexBuffers(gl);
+        const n = initVertexBuffers3(gl);
+        if(n<0) {
+            console.log('设置顶点位置失败');
+            return;
+        }
+
+        // 设置背景色
+        gl.clearColor(0.0, 0.0, 0.0, 1.0);
+
+        // 清除背景
+        gl.clear(gl.COLOR_BUFFER_BIT);
+
+        //绘制3个点
+        gl.drawArrays(gl.TRIANGLES, 0, n);
+    }
+    main();
+</script>
+</body>
+</html>
